@@ -13,10 +13,10 @@ jobs:
       - name: 📥 Clone source
         uses: actions/checkout@v3
 
-      - name: ☕ Setup Java 17
+      - name: ☕ Setup Java 21
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: 🏗️ Build .jar
