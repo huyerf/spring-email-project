@@ -36,4 +36,5 @@ jobs:
             docker-compose down
             rm -f target/email-0.0.1-SNAPSHOT.jar
             mkdir -p target
-            exit
+            scp -o StrictHostKeyChecking=no target/email-0.0.1-SNAPSHOT.jar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/ubuntu/email/target/
+            docker-compose up -d --build
