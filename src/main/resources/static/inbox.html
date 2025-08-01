@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Hộp thư</title>
+  <style>
+    body {
+      background-color: #f3f4f6;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 50px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1f2937;
+      flex-grow: 1;
+    }
+
+    .button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .send-btn {
+      background-color: #2563eb;
+      color: white;
+    }
+
+    .back-btn {
+      background: none;
+      color: #374151;
+      text-decoration: underline;
+    }
+
+    .email-list, .mail-detail {
+      list-style: none;
+      padding: 0;
+    }
+
+    .email-item {
+      padding: 12px 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .email-item:hover {
+      background-color: #e0f2fe;
+    }
+
+    .email-detail {
+      padding: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .email-detail h4 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      color: #1f2937;
+    }
+
+    .email-detail .date {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .loading {
+      text-align: center;
+      color: #3b82f6;
+    }
+
+    .empty {
+      text-align: center;
+      color: #6b7280;
+    }
+
+    input, select {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="title" id="title">📥 Danh sách người gửi</div>
+    <input id="searchBox" placeholder="🔍 Tìm tiêu đề hoặc nội dung" />
+    <select id="searchScope">
+      <option value="all">📬 Tất cả người gửi</option>
+      <option value="current">👤 Người gửi đang chọn</option>
+    </select>
+    <button class="button send-btn" onclick="searchMails()">🔍 Tìm</button>
+    <button class="button send-btn" onclick="goToSend()">✉️ Gửi Email</button>
+    <button class="button back-btn" onclick="logout()">🚪 Đăng xuất</button>
+  </div>
+
+  <div id="loading" class="loading">Đang tải...</div>
+  <ul id="senderList" class="email-list" style="display: none;"></ul>
+  <div id="mailList" style="display: none;"></div>
+</div>
+
+<script>
+  const username = localStorage.getItem('username')
+  const title = document.getElementById('title')
+  const loading = document.getElementById('loading')
+  const senderList = document.getElementById('senderList')
+  const mailList = document.getElementById('mailList')
+
+  let emails = []
+  let selectedSender = null
+
+  if (!username) {
+    alert('⚠️ Bạn chưa đăng nhập.')
+    loading.style.display = 'none'
+  } else {
+    loadInbox()
+  }
+
+  function goToSend() {
+    window.location.href = '/send.html'
+  }
+
+  async function loadInbox() {
+    try {
+      const res = await fetch(`http://192.168.71.100:8080/api/mail/inbox?username=${username}`)
+      emails = await res.json()
+      displaySenders()
+    } catch (e) {
+      console.error('Lỗi khi tải dữ liệu:', e)
+      loading.innerText = 'Lỗi tải dữ liệu.'
+    } finally {
+      loading.style.display = 'none'
+    }
+  }
+
+  function displaySenders() {
+    const uniqueSenders = [...new Set(emails.map(e => e.from))]
+    senderList.innerHTML = ''
+
+    if (uniqueSenders.length === 0) {
+      senderList.innerHTML = '<div class="empty">Không có email nào.</div>'
+    } else {
+      uniqueSenders.forEach(sender => {
+        const li = document.createElement('li')
+        li.className = 'email-item'
+        li.textContent = `📩 ${sender}`
+        li.onclick = () => showMailsBySender(sender)
+        senderList.appendChild(li)
+      })
+    }
+
+    senderList.style.display = 'block'
+    mailList.style.display = 'none'
+  }
+
+  function showMailsBySender(sender) {
+    selectedSender = sender
+    const mails = emails.filter(m => m.from === sender)
+    displayMails(mails, `📨 Email từ: ${sender}`)
+  }
+
+  function displayMails(mails, titleText) {
+    mailList.innerHTML = ''
+    title.innerText = titleText
+
+    const backBtn = document.createElement('button')
+    backBtn.className = 'button back-btn'
+    backBtn.innerText = '← Quay lại'
+    backBtn.onclick = () => {
+      selectedSender = null
+      title.innerText = '📥 Danh sách người gửi'
+      displaySenders()
+    }
+    mailList.appendChild(backBtn)
+
+    if (mails.length === 0) {
+      mailList.innerHTML += '<div class="empty">Không có email nào phù hợp.</div>'
+    } else {
+      mails.forEach(mail => {
+        const div = document.createElement('div')
+        div.className = 'email-detail'
+
+        let html = `
+          <h4>Tiêu đề: ${mail.subject || '(Không có tiêu đề)'}</h4>
+          <div class="date">${mail.date}</div>
+          <div class="content">Nội dung: ${mail.content}</div>
+        `
+
+        if (mail.attachments && mail.attachments.length > 0) {
+          html += `<div><b>📎 File đính kèm:</b></div>`
+          mail.attachments.forEach(filename => {
+            html += `
+              <div>
+                <a href="/api/mail/download?username=${encodeURIComponent(username)}&messageIndex=${mail.messageIndex}&filename=${encodeURIComponent(filename)}"
+                   download="${filename}" target="_blank">
+                  📥 ${filename}
+                </a>
+              </div>
+            `
+          })
+        }
+
+        div.innerHTML = html
+        mailList.appendChild(div)
+      })
+    }
+
+    senderList.style.display = 'none'
+    mailList.style.display = 'block'
+  }
+
+async function searchMails() {
+  const keyword = document.getElementById('searchBox').value.trim()
+  const scope = document.getElementById('searchScope').value
+
+  if (!keyword) return
+
+  loading.style.display = 'block'
+  senderList.style.display = 'none'
+  mailList.style.display = 'none'
+
+  try {
+    const from = (scope === 'current' && selectedSender) ? selectedSender : ''
+    const url = `http://192.168.71.100:8080/api/mail/search?username=${encodeURIComponent(username)}&keyword=${encodeURIComponent(keyword)}&from=${encodeURIComponent(from)}`
+    
+    const res = await fetch(url)
+    const result = await res.json()
+    displayMails(result, `🔍 Kết quả tìm: "${keyword}"`)
+  } catch (e) {
+    mailList.innerHTML = '<div class="empty">Đã xảy ra lỗi khi tìm kiếm.</div>'
+    console.error(e)
+  } finally {
+    loading.style.display = 'none'
+  }
+}
+
+  function logout() {
+    localStorage.removeItem('username')
+    window.location.href = '/index.html'
+  }
+
+  if (username) {
+    connectWebSocket(username)
+  }
+
+  function connectWebSocket(username) {
+    const socket = new SockJS('http://192.168.71.100:8080/ws')
+    const stompClient = Stomp.over(socket)
+
+    stompClient.connect({}, function () {
+      stompClient.subscribe('/topic/inbox/' + username, function (message) {
+        const newMail = JSON.parse(message.body)
+        emails.push(newMail)
+        if (!selectedSender || selectedSender !== newMail.from) {
+          displaySenders()
+        } else {
+          showMailsBySender(selectedSender)
+        }
+        alert(`📧 Email mới từ ${newMail.from}: ${newMail.subject}`)
+      })
+    }, function (error) {
+      console.error('❌ Kết nối WebSocket thất bại:', error)
+    })
+  }
+</script>
+</body>
+</html>

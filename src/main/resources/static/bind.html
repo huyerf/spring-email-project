@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Liên kết tài khoản</title>
+  <style>
+    body {
+      font-family: Arial;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .form-box {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    input, button {
+      display: block;
+      margin-top: 10px;
+      width: 100%;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-box">
+    <h2>Liên kết tài khoản nội bộ</h2>
+    <form method="POST" action="/bind">
+      <input type="text" name="username" placeholder="Email nội bộ" required />
+      <input type="password" name="password" placeholder="Mật khẩu" required />
+      <button type="submit">Liên kết và đăng nhập</button>
+    </form>
+    <p style="color: red;">
+      <script>
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("error") === "login_failed") {
+          document.write("Đăng nhập không thành công. Vui lòng thử lại.");
+        }
+      </script>
+    </p>
+  </div>
+</body>
+</html>

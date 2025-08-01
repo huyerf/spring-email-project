@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Đăng nhập Email</title>
+  <meta name="laoid-signin-client-id" content="660dfa27-5a95-4c88-8a55-abe1310bf579">
+  <meta name="laoid-signin-redirect-uri" content="http://172.16.5.255/laoid/auth/callback">
+  <meta name="laoid-signin-use-callback-uri" content="true">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #bfdbfe, #c7d2fe);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .login-box {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-box h1 {
+      text-align: center;
+      margin-bottom: 24px;
+      font-size: 24px;
+      color: #1f2937;
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .login-box input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+
+    .login-box button {
+      width: 100%;
+      padding: 12px;
+      background-color: #2563eb;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .login-box button:hover {
+      background-color: #1d4ed8;
+    }
+
+    .login-box .laoid-button {
+      background-color: #059669;
+      margin-top: 12px;
+    }
+
+    .login-box .laoid-button:hover {
+      background-color: #047857;
+    }
+
+    .message {
+      text-align: center;
+      color: red;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-box">
+    <h1>Đăng nhập Email</h1>
+
+    <!-- Đăng nhập thông thường -->
+    <input type="text" id="username" placeholder="Tên người dùng">
+    <input type="password" id="password" placeholder="Mật khẩu">
+    <button onclick="login()">Đăng nhập</button>
+
+    <!-- hoặc -->
+    <div style="text-align: center; margin: 16px 0; color: #6b7280;">hoặc</div>
+
+    <!-- Nút đăng nhập qua LaoID -->
+    <button id="laoid-signin" class="laoid-button">🔐 Đăng nhập bằng LaoID</button>
+
+    <p id="message" class="message"></p>
+  </div>
+
+  <script>
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const message = document.getElementById('message');
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        if (!response.ok) throw new Error('Login failed');
+        localStorage.setItem('username', username);
+        window.location.href = '/inbox.html';
+      } catch (err) {
+        message.textContent = 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin!';
+      }
+    }
+  </script>
+
+  <!-- LaoID SSO Script -->
+  <script>
+    function getMetas() {
+      const metas = {};
+      const metaElements = document.getElementsByTagName("meta");
+      for (let i = 0; i < metaElements.length; i++) {
+        metas[metaElements[i].getAttribute("name")] =
+          metaElements[i].getAttribute("content");
+      }
+      return metas;
+    }
+
+    function initializeSSO() {
+      if (window.LaoIdSSO && window.LaoIdSSO.isInitialize) return;
+      window.LaoIdSSO = {};
+      window.LaoIdSSO.isInitialize = true;
+
+      const metas = getMetas();
+      window.LaoIdSSO.clientId = metas["laoid-signin-client-id"];
+      window.LaoIdSSO.redirectUri = metas["laoid-signin-redirect-uri"];
+      window.LaoIdSSO.useCallbackUri = metas["laoid-signin-use-callback-uri"] === "true";
+
+      document.getElementById("laoid-signin").addEventListener("click", function () {
+        const popupWidth = 455;
+        const popupHeight = 810;
+        const left = (window.innerWidth - popupWidth) / 2 + window.screenX;
+        const top = (window.innerHeight - popupHeight) / 2 + window.screenY;
+
+        window.open(
+          `https://demo-sso.tinasoft.io/login?client_id=${window.LaoIdSSO.clientId}&redirect_uri=${window.LaoIdSSO.redirectUri}&use_callback_uri=${window.LaoIdSSO.useCallbackUri}`,
+          "LaoID",
+          `height=${popupHeight},width=${popupWidth},top=${top},left=${left},resizable=no,location=no,menubar=no`
+        );
+      });
+    }
+
+    initializeSSO();
+  </script>
+
+</body>
+</html>

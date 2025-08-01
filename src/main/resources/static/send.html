@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Gửi Email</title>
+  <style>
+    body {
+      background: linear-gradient(to bottom right, #e0e7ff, #bfdbfe);
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 60px auto;
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      font-size: 28px;
+      font-weight: bold;
+      text-align: center;
+      color: #1f2937;
+      margin-bottom: 30px;
+    }
+
+    label {
+      font-weight: bold;
+      color: #374151;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    input[type="email"],
+    input[type="text"],
+    textarea,
+    input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 24px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    textarea {
+      resize: none;
+    }
+
+    .send-btn {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .send-btn:hover {
+      background-color: #1e40af;
+    }
+
+    .result {
+      text-align: center;
+      margin-top: 16px;
+      font-weight: bold;
+    }
+
+    .result.success {
+      color: green;
+    }
+
+    .result.error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>📤 Gửi Email</h2>
+
+  <label>📧 Người nhận</label>
+  <input type="email" id="to" placeholder="example@fake.local" />
+
+  <label>📝 Tiêu đề</label>
+  <input type="text" id="subject" placeholder="Chủ đề email" />
+
+  <label>✉️ Nội dung</label>
+  <textarea id="body" rows="8" placeholder="Nội dung email..."></textarea>
+
+  <label>📎 File đính kèm (tuỳ chọn)</label>
+  <input type="file" id="file" />
+
+  <div style="text-align: right;">
+    <button class="send-btn" onclick="sendMail()">🚀 Gửi Email</button>
+  </div>
+
+  <div id="result" class="result"></div>
+</div>
+
+<script>
+  async function sendMail() {
+    const to = document.getElementById('to').value
+    const subject = document.getElementById('subject').value
+    const body = document.getElementById('body').value
+    const file = document.getElementById('file').files[0]
+    const result = document.getElementById('result')
+    const username = localStorage.getItem('username')
+
+    if (!username) {
+      result.textContent = '⚠️ Bạn chưa đăng nhập!'
+      result.className = 'result error'
+      return
+    }
+
+    if (!to || !subject || !body) {
+      result.textContent = '⚠️ Vui lòng điền đầy đủ thông tin.'
+      result.className = 'result error'
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('username', username)
+    formData.append('to', to)
+    formData.append('subject', subject)
+    formData.append('body', body)
+    if (file) {
+      formData.append('file', file)
+    }
+
+    try {
+      const res = await fetch('http://192.168.71.100:8080/api/mail/send', {
+        method: 'POST',
+        body: formData
+      })
+
+      const text = await res.text()
+      if (text === 'sent') {
+        result.textContent = '✅ Gửi thành công!'
+        result.className = 'result success'
+      } else {
+        result.textContent = '❌ Lỗi: ' + text
+        result.className = 'result error'
+      }
+    } catch (err) {
+      result.textContent = '❌ Gửi thất bại. Vui lòng kiểm tra kết nối!'
+      result.className = 'result error'
+    }
+  }
+</script>
+
+</body>
+</html>
